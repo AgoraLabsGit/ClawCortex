@@ -1,10 +1,8 @@
 import Fastify from "fastify";
 import fastifyJwt from "@fastify/jwt";
 import fastifyCors from "@fastify/cors";
-import { createServer } from "http";
-import { WebSocket, WebSocketServer } from "ws";
+import { WebSocketServer } from "ws";
 import dotenv from "dotenv";
-import { logger } from "./lib/logger";
 import { authRoutes } from "./routes/auth";
 import { projectRoutes } from "./routes/projects";
 import { activityRoutes } from "./routes/activity";
@@ -15,7 +13,7 @@ const PORT = parseInt(process.env.PORT || "3001");
 const JWT_SECRET = process.env.JWT_SECRET || "development-secret";
 
 const fastify = Fastify({
-  logger: logger,
+  logger: true, // Use Fastify's built-in logger instead of custom Pino
 });
 
 // Middleware
@@ -38,12 +36,11 @@ fastify.get("/health", async () => {
   return { status: "ok" };
 });
 
-// WebSocket setup
-const server = createServer(fastify.server);
-const wss = new WebSocketServer({ server });
+// WebSocket setup (use Fastify's server directly)
+const wss = new WebSocketServer({ server: fastify.server });
 
-wss.on("connection", (ws: WebSocket) => {
-  logger.info("WebSocket connected");
+wss.on("connection", (ws) => {
+  fastify.log.info("WebSocket connected");
 
   ws.on("message", (data: string) => {
     try {
@@ -51,24 +48,24 @@ wss.on("connection", (ws: WebSocket) => {
 
       if (message.type === "auth") {
         // Validate token and set user context
-        logger.info("WebSocket authenticated");
+        fastify.log.info("WebSocket authenticated");
       }
 
       if (message.type === "subscribe") {
         // Subscribe to specific events
-        logger.info("Subscribed to events:", message.events);
+        fastify.log.info("Subscribed to events:", message.events);
       }
     } catch (error) {
-      logger.error("WebSocket message error:", error);
+      fastify.log.error("WebSocket message error:", error);
     }
   });
 
   ws.on("close", () => {
-    logger.info("WebSocket disconnected");
+    fastify.log.info("WebSocket disconnected");
   });
 
   ws.on("error", (error) => {
-    logger.error("WebSocket error:", error);
+    fastify.log.error("WebSocket error:", error);
   });
 });
 
@@ -76,9 +73,9 @@ wss.on("connection", (ws: WebSocket) => {
 const start = async () => {
   try {
     await fastify.listen({ port: PORT, host: "0.0.0.0" });
-    logger.info(`Server running at http://localhost:${PORT}`);
+    fastify.log.info(`Server running at http://0.0.0.0:${PORT}`);
   } catch (err) {
-    logger.error(err);
+    fastify.log.error(err);
     process.exit(1);
   }
 };
