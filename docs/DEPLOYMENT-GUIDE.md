@@ -433,6 +433,56 @@ curl https://your-backend.up.railway.app/health
 
 ---
 
+### TypeScript Build Errors
+
+**Symptoms:**
+- `error TS2769: No overload matches this call` (logger types)
+- `Property 'signUpWithPassword' does not exist` (Supabase API)
+- `Type 'Http2SecureServer' is not assignable` (HTTP server)
+
+**Common Causes & Fixes:**
+
+**1. Fastify Logger Type Mismatch:**
+
+```typescript
+// ❌ Wrong: Custom Pino logger causes type errors
+import { logger } from "./lib/logger";
+const fastify = Fastify({ logger: logger });
+
+// ✅ Correct: Use Fastify's built-in logger
+const fastify = Fastify({ logger: true });
+```
+
+**2. Supabase Auth API Changes:**
+
+```typescript
+// ❌ Old API (deprecated)
+await supabase.auth.signUpWithPassword({ email, password });
+
+// ✅ Current API
+await supabase.auth.signUp({ email, password });
+```
+
+**3. HTTP/WebSocket Server Setup:**
+
+```typescript
+// ❌ Wrong: Creating separate HTTP server causes type conflicts
+import { createServer } from "http";
+const server = createServer(fastify.server);
+const wss = new WebSocketServer({ server });
+
+// ✅ Correct: Use Fastify's server directly
+const wss = new WebSocketServer({ server: fastify.server });
+```
+
+**Debugging Steps:**
+1. Run `npm run build` locally to see TypeScript errors before pushing
+2. Check Railway build logs for exact error messages
+3. Consult latest Fastify/Supabase docs for API changes
+4. Use `@types/node` and framework type definitions that match your versions
+
+---
+
 ### Frontend Can't Connect to Backend
 
 **Symptoms:**
