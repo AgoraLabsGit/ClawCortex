@@ -1,0 +1,21 @@
+{
+  "name": "clawcortex",
+  "version": "0.0.1",
+  "description": "AI Agent Workspace SaaS",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install && npm install --prefix frontend && npm install --prefix backend",
+    "dev": "concurrently 'npm run dev:frontend' 'npm run dev:backend'",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "dev:backend": "npm run dev --prefix backend",
+    "build": "npm run build --prefix frontend && npm run build --prefix backend",
+    "build:frontend": "npm run build --prefix frontend",
+    "build:backend": "npm run build --prefix backend",
+    "start": "npm start --prefix backend",
+    "test": "npm test --prefix frontend && npm test --prefix backend",
+    "lint": "npm run lint --prefix frontend && npm run lint --prefix backend"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.1"
+  }
+}
