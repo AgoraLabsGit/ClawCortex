@@ -4,6 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchAPI } from "@/lib/api";
 
+interface LoginResponse {
+  token: string;
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -17,7 +21,7 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const response = await fetchAPI("/auth/login", {
+      const response = await fetchAPI<LoginResponse>("/auth/login", {
         method: "POST",
         body: JSON.stringify({ email, password }),
       });
