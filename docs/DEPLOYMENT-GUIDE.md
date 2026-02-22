@@ -12,6 +12,24 @@
 
 ---
 
+## ⚡ Key Insight: Use Vercel Integrations
+
+**IMPORTANT**: Vercel has native integrations for both Supabase and Railway. This is the **recommended approach** because:
+
+- ✅ **Automatic env var sync** (no manual copy/paste)
+- ✅ **Zero-config setup** (credentials auto-populated)
+- ✅ **Always up-to-date** (changes in Supabase/Railway auto-sync)
+- ✅ **Fewer errors** (no typos, no missing vars)
+
+**How it works:**
+1. Deploy to Supabase + Railway first
+2. Use Vercel's built-in integrations to connect them
+3. Environment variables appear automatically in your Vercel project
+
+**This guide follows that approach** — you'll set up each service independently, then connect them via Vercel integrations (Part 4).
+
+---
+
 ## Prerequisites
 
 - [ ] GitHub account
@@ -255,10 +273,51 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
    - **Root Directory**: `frontend`
    - **Build Command**: `npm run build` (auto-detected)
    - **Output Directory**: `.next` (auto-detected)
+4. **Don't add env vars yet** — we'll use integrations (see 4.2)
 
-### 4.2 Environment Variables
+### 4.2 Set Up Integrations (Recommended Method)
 
-Click **Environment Variables** and add:
+**⚠️ BEST PRACTICE: Use Vercel integrations instead of manual env vars.**
+
+Vercel has native integrations for Supabase and Railway that:
+- ✅ Auto-sync environment variables
+- ✅ Update automatically when backend changes
+- ✅ Single source of truth (no manual updates)
+- ✅ Secure by default (proper scoping)
+
+#### 4.2.1 Supabase Integration
+
+1. In Vercel: **Settings** → **Integrations** → Search **"Supabase"**
+2. Click **"Add Integration"**
+3. **Select your Supabase project**: ClawCortex
+4. **Select your Vercel project**: clawcortex
+5. Click **"Connect"**
+
+**What this does:**
+- Automatically adds `NEXT_PUBLIC_SUPABASE_URL`
+- Automatically adds `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- Updates when you change Supabase keys
+
+#### 4.2.2 Railway Integration
+
+1. In Vercel: **Settings** → **Integrations** → Search **"Railway"**
+2. Click **"Add Integration"**
+3. **Configuration:**
+   - Vercel project: `clawcortex`
+   - Railway project: `ClawCortex-Backend`
+   - Environment sync: Production → Production
+4. Click **"Save Configuration"**
+
+**What this does:**
+- Backend URL automatically available as `RAILWAY_PUBLIC_DOMAIN`
+- Railway env vars synced to Vercel (if needed)
+- Updates when Railway redeploys
+
+### 4.3 Manual Environment Variables (Only If Not Using Integrations)
+
+**Skip this if you set up integrations above.**
+
+If you prefer manual setup, click **Environment Variables** and add:
 
 ```bash
 # Supabase (public keys only)
@@ -282,13 +341,13 @@ OPENAI_API_KEY=sk-your-openai-api-key
 - ❌ Never put `SUPABASE_SERVICE_KEY` in Vercel frontend
 - ✅ Backend secrets stay in Railway only
 
-### 4.3 Deploy
+### 4.4 Deploy
 
 1. Click **"Deploy"**
 2. Wait ~1-2 minutes
 3. Get your live URL (e.g., `https://clawcortex.vercel.app`)
 
-### 4.4 Update Railway CORS
+### 4.5 Update Railway CORS
 
 Now that you have the Vercel URL, go back to Railway:
 
@@ -296,34 +355,11 @@ Now that you have the Vercel URL, go back to Railway:
 2. Set to: `https://your-app.vercel.app`
 3. Redeploy backend
 
----
-
-## Part 5: Vercel ↔ Railway Integration (Optional but Recommended)
-
-This auto-syncs Railway env vars to Vercel.
-
-### 5.1 Set Up Integration
-
-1. In Vercel: **Integrations** → Search "Railway"
-2. Click **"Add Integration"**
-3. Select your Vercel project (`clawcortex`)
-4. Select your Railway project (`ClawCortex-Backend`)
-5. Configure sync:
-   - **Vercel Environment**: Production
-   - **Railway Environment**: Production
-6. Click **"Save Configuration"**
-
-### 5.2 What This Does
-
-- ✅ Railway env vars automatically available in Vercel
-- ✅ Backend URL auto-updated (no manual changes needed)
-- ✅ Single source of truth for shared secrets
-
-**Example**: Railway's public domain becomes `process.env.RAILWAY_PUBLIC_DOMAIN` in Vercel.
+**Note**: If using Railway integration, the frontend can access `process.env.RAILWAY_PUBLIC_DOMAIN` to construct the API URL dynamically.
 
 ---
 
-## Part 6: Verify Full Stack
+## Part 5: Verify Full Stack
 
 ### 6.1 Test Backend (Railway)
 
@@ -350,7 +386,7 @@ curl https://your-backend.up.railway.app/health
 
 ---
 
-## Part 7: Post-Deployment Checklist
+## Part 6: Post-Deployment Checklist
 
 - [ ] Backend health endpoint responding
 - [ ] Frontend loads without errors
