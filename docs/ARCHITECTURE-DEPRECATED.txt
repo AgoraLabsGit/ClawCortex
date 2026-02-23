@@ -1,0 +1,27 @@
+⚠️  DEPRECATED DOCUMENT
+
+This folder previously contained:
+- ARCHITECTURE.md (v1.0)
+- ARCHITECTURE-V2.md (v2.0)
+
+These are superseded by:
+
+📖 MVP-ARCHITECTURE.md (CURRENT - 2026-02-23)
+
+REASON: Need single clear source of truth for MVP spec.
+
+WHAT CHANGED:
+- Clearer scope (single-operator, not multi-user)
+- Realistic 4-week timeline
+- Decision rationale documented
+- Reduced scope for faster shipping
+
+If you need technical details (component breakdown, API spec):
+- Check ARCHITECTURE-V2.md (still useful as reference)
+- But use MVP-ARCHITECTURE.md as source of truth for current work
+
+If you need product context:
+- See PRD.md (market, positioning)
+- See NEXT-SESSION-PROMPT.md (build instructions)
+
+ARCHIVED: 2026-02-23 21:06 GMT-3
