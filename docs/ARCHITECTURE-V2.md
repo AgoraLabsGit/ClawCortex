@@ -325,6 +325,35 @@ CREATE INDEX idx_activity_project_id ON activity_log(project_id);
 CREATE INDEX idx_activity_timestamp ON activity_log(timestamp DESC);
 ```
 
+### Task Status Values (Exact - DO NOT MODIFY)
+
+**Inspired by BMAD Method**. These exact values are used across Supabase, GitHub labels, and UI.
+
+| Status | Definition | UI Color | Next Actions |
+|--------|------------|----------|--------------| 
+| `backlog` | Story exists but not ready | Gray | → Move to `ready-for-dev` when prioritized |
+| `ready-for-dev` | Story file created, ready to implement | Blue | → Builder agent picks up |
+| `in-progress` | Agent actively working on task | Yellow | → Completes or HALTs |
+| `review` | Implementation done, awaiting approval | Orange | → Code review agent |
+| `done` | Approved and merged | Green | → Archive |
+| `blocked` | Cannot proceed (HALT unresolved) | Red | → User intervention required |
+
+**NEVER use**: "complete", "completed", "finished", "ready", "todo", "wip" - these break UI filters.
+
+**Database Constraint**:
+
+```sql
+ALTER TABLE tasks ADD CONSTRAINT valid_status CHECK (status IN ('backlog', 'ready-for-dev', 'in-progress', 'review', 'done', 'blocked'));
+```
+
+**GitHub Label Mapping**:
+- `status:backlog` → `backlog`
+- `status:ready` → `ready-for-dev`
+- `status:in-progress` → `in-progress`
+- `status:review` → `review`
+- `status:done` → `done`
+- `status:blocked` → `blocked`
+
 ---
 
 ## 5. API Endpoints
@@ -379,7 +408,84 @@ async function syncGitHubIssues(projectId, githubRepo) {
 
 ---
 
-## 6. Authentication & Authorization
+## 6. Quality Gates (BMAD-Inspired)
+
+### Overview
+
+Enforce quality standards before marking tasks as `done`.
+
+### Required Gates (MVP)
+
+**1. Code Implementation (Builder Agent)**
+- Red-Green-Refactor methodology
+- Unit tests for each function
+- Integration tests for API endpoints
+- All tests pass before moving to `review`
+
+**2. Code Review (Review Agent)**
+- Adversarial review (find minimum 3 issues)
+- Checklist:
+  - [ ] Type safety (no `any` types)
+  - [ ] Error handling (try/catch, error boundaries)
+  - [ ] Security (no hardcoded secrets, SQL injection protection)
+  - [ ] Performance (no N+1 queries, optimized renders)
+  - [ ] Accessibility (ARIA labels, keyboard navigation)
+  - [ ] Documentation (JSDoc for public APIs)
+- Returns: `APPROVED` or `CHANGES_REQUESTED` with specific issues
+
+**3. Acceptance Criteria Validation**
+- QA agent runs Given/When/Then scenarios
+- All criteria from story file must pass
+- Manual QA for UI/UX flows (Phase 2: automated Playwright tests)
+
+### Optional Gates (Phase 2)
+
+**4. UX Review** (UI-heavy features)
+- Design system compliance (Shadcn/ui components)
+- Responsive design (mobile/desktop)
+- Dark mode consistency
+
+**5. Performance Testing**
+- Lighthouse score > 85
+- API response < 200ms (p95)
+- WebSocket latency < 100ms (p95)
+
+### Implementation
+
+**Agent Workflow**:
+
+```
+Builder completes task
+↓
+Task status → `review`
+↓
+Henry spawns Review sub-agent
+↓
+Review agent returns: APPROVED or CHANGES_REQUESTED
+↓
+If APPROVED:
+  - Task status → `done`
+  - Merge PR (if applicable)
+If CHANGES_REQUESTED:
+  - Task status → `in-progress`
+  - Log issues to activity_log
+  - Henry respawns Builder with review feedback
+```
+
+**UI Representation**:
+
+```
+Project View → Task Detail → Quality Gates Tab:
+✅ Code Implementation (Builder) - Passed
+⏳ Code Review (Review Agent) - In Progress
+⬜ UX Review - Not Required
+⬜ QA Testing - Not Required
+[View Review Comments (3)]
+```
+
+---
+
+## 9. Authentication & Authorization
 
 ### Frontend Auth (Supabase Auth)
 
@@ -395,7 +501,7 @@ async function syncGitHubIssues(projectId, githubRepo) {
 
 ---
 
-## 7. Real-Time Updates
+## 10. Real-Time Updates
 
 ### Supabase Realtime (Frontend)
 
@@ -434,7 +540,94 @@ ws.onmessage = (event) => {
 
 ---
 
-## 8. Deployment Architecture
+## 7. Agent Error Handling (HALT Protocol)
+
+### Overview
+
+Inspired by BMAD Method. When agents cannot proceed, they log structured HALT events instead of silent failures.
+
+### HALT Format
+
+**Agent Detection**:
+
+```javascript
+// Agent encounters blocking issue
+throw new Error('HALT: Missing database schema | Context: Need schema before implementing data layer');
+```
+
+**Logging to Supabase**:
+
+```javascript
+await supabase.from('activity_log').insert({
+  project_id: projectId,
+  agent_name: 'Builder',
+  event_type: 'agent_halt',
+  event_data: {
+    halt_reason: 'Missing database schema',
+    context: 'Need schema before implementing data layer',
+    task_id: taskId,
+    timestamp: new Date().toISOString()
+  }
+});
+```
+
+### UI Representation
+
+**Command Center (Dashboard)**:
+- Project card shows 🔴 error badge
+- Activity feed displays: `[Builder] ⚠️ HALT: Missing database schema`
+
+**Project View**:
+- Task detail shows HALT banner with:
+  - Reason (user-friendly)
+  - Context (technical details)
+  - Actions: `[Retry]` `[Skip]` `[Resolve Manually]`
+
+### Orchestrator Response
+
+**Henry (Orchestrator) Logic**:
+
+1. **Detect HALT** from sub-agent announcement
+2. **Classify**:
+   - `resolvable` → Auto-fix (e.g., install missing dependency)
+   - `ambiguous` → Escalate to user via UI notification
+   - `blocking` → Mark task as `blocked`, log, continue with other tasks
+3. **Retry Logic**:
+   - Max 2 retries per task
+   - On retry: Include previous HALT context in prompt
+   - On final failure: Update task status to `blocked` in Supabase
+
+### Example Flow
+
+```
+User: "Build authentication feature"
+↓
+Henry spawns Builder sub-agent
+↓
+Builder: HALT: Missing AUTH_SECRET env var | Context: Required for JWT signing
+↓
+Henry detects HALT → Checks if AUTO_RESOLVE enabled
+↓
+If yes: Henry generates AUTH_SECRET, updates .env, respawns Builder
+If no: Logs to Supabase, UI shows notification to user
+↓
+User clicks [Resolve] → Modal shows HALT details + input field
+User provides value → Henry updates .env → Retries Builder
+```
+
+### HALT Categories
+
+| Category | Auto-Resolve | Example |
+|----------|-------------|---------| 
+| `missing_dependency` | ✅ Yes | Missing npm package |
+| `missing_env_var` | ⚠️ Ask user | API key not set |
+| `missing_context` | ❌ No | Ambiguous requirement |
+| `external_service_down` | ⏳ Wait + retry | GitHub API rate limit |
+| `invalid_state` | ❌ No | Conflicting requirements |
+
+---
+
+## 11. Deployment Architecture
 
 ### Production Stack
 
@@ -472,7 +665,7 @@ ws.onmessage = (event) => {
 
 ---
 
-## 9. Cost Projections
+## 12. Cost Projections
 
 ### Free Tier Capacity
 
@@ -492,7 +685,7 @@ ws.onmessage = (event) => {
 
 ---
 
-## 10. Security Considerations
+## 13. Security Considerations
 
 ### Secrets Management
 
@@ -512,7 +705,7 @@ ws.onmessage = (event) => {
 
 ---
 
-## 11. Monitoring & Observability
+## 14. Monitoring & Observability
 
 ### Built-in Tools
 
@@ -529,7 +722,7 @@ ws.onmessage = (event) => {
 
 ---
 
-## 12. Testing Strategy
+## 15. Testing Strategy
 
 ### Frontend Tests
 
@@ -545,7 +738,7 @@ ws.onmessage = (event) => {
 
 ---
 
-## 13. Migration from v1 (If Needed)
+## 16. Migration from v1 (If Needed)
 
 If you already deployed v1 (Fastify backend):
 
@@ -559,7 +752,7 @@ If you already deployed v1 (Fastify backend):
 
 ---
 
-## 14. Decision Log
+## 17. Decision Log
 
 | Date | Decision | Rationale |
 |------|----------|-----------|

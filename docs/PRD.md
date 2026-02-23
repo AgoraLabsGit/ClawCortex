@@ -304,8 +304,50 @@ Dashboard open → Activity feed shows recent action
 - Slack integration
 - OAuth signup (GitHub, Google)
 - Advanced filtering + custom views
+- **BMAD Planning Wizard** (new project creation pipeline)
 
 **User limit**: 500 (public beta)
+
+#### Phase 2 Enhancement: BMAD-Inspired Project Wizard
+
+**Feature**: Structured project creation pipeline (instead of manual setup)
+
+**User Flow**:
+
+```
+User clicks [Create New Project] in ClawCortex UI
+↓
+Modal: "What are you building?" (text input)
+↓
+ClawCortex spawns BMAD Planning Pipeline:
+  1. Product Owner agent → Product Brief (1 min)
+  2. Business Analyst agent → PRD (2 min)
+  3. Architect agent → Architecture doc (3 min)
+  4. Scrum Master agent → Epics & Stories (2 min)
+  5. Readiness Check → GO/NO-GO (1 min)
+↓
+UI shows progress: "Planning your project... (Step 3/5: Architecture)"
+↓
+When complete:
+  - UI displays all artifacts (Brief, PRD, Architecture, Epics)
+  - Readiness status: 🟢 GO or 🔴 NO-GO (with blockers)
+↓
+User reviews + approves
+↓
+ClawBot:
+  - Creates GitHub repo (user/project-name)
+  - Scaffolds initial structure (based on tech stack)
+  - Commits planning artifacts to repo
+  - Updates ClawCortex dashboard (new project card)
+```
+
+**MVP Scope (Excluded)**: Manual project creation (user provides GitHub repo URL) — ClawCortex syncs existing repo
+
+**Phase 2 Scope (Week 8-12)**: Full BMAD planning pipeline + automated repo creation + scaffolding + project wizard UI
+
+**Reference Implementation**:
+- BMAD prompts: `/data/.openclaw/workspace/bmad-reference/prompts/`
+- Adapt for ClawCortex context (multi-project, Supabase integration)
 
 ### Phase 3 (v2) — Ship 2026-08-23
 **Deliverables**:
