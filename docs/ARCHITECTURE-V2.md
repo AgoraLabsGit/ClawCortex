@@ -485,61 +485,6 @@ Project View → Task Detail → Quality Gates Tab:
 
 ---
 
-## 9. Authentication & Authorization
-
-### Frontend Auth (Supabase Auth)
-
-- **Sign Up**: Email + password (or OAuth in Phase 2)
-- **Login**: JWT tokens stored in localStorage
-- **Row Level Security (RLS)**: Supabase enforces user-scoped queries
-
-### OpenClaw Gateway Auth
-
-- **Gateway Token**: Single token for all API calls
-- **Scoping**: Optional per-user tokens (Phase 2)
-- **Control UI**: Separate login (setup password)
-
----
-
-## 10. Real-Time Updates
-
-### Supabase Realtime (Frontend)
-
-Frontend subscribes to PostgreSQL changes:
-
-```typescript
-// Activity feed subscription
-const subscription = supabase
-  .channel(`activity:${projectId}`)
-  .on('postgres_changes', {
-    event: 'INSERT',
-    schema: 'public',
-    table: 'activity_log',
-    filter: `project_id=eq.${projectId}`
-  }, (payload) => {
-    setActivities((prev) => [payload.new as Activity, ...prev]);
-  })
-  .subscribe();
-```
-
-### WebSocket (Agent Status)
-
-Frontend connects to OpenClaw WebSocket for agent status:
-
-```typescript
-const ws = new WebSocket(`wss://your-railway-url/ws?token=${GATEWAY_TOKEN}`);
-
-ws.onmessage = (event) => {
-  const { type, data } = JSON.parse(event.data);
-  
-  if (type === 'agent_status') {
-    setAgentStatus(data);
-  }
-};
-```
-
----
-
 ## 7. Agent Error Handling (HALT Protocol)
 
 ### Overview
@@ -627,7 +572,62 @@ User provides value → Henry updates .env → Retries Builder
 
 ---
 
-## 11. Deployment Architecture
+## 8. Authentication & Authorization
+
+### Frontend Auth (Supabase Auth)
+
+- **Sign Up**: Email + password (or OAuth in Phase 2)
+- **Login**: JWT tokens stored in localStorage
+- **Row Level Security (RLS)**: Supabase enforces user-scoped queries
+
+### OpenClaw Gateway Auth
+
+- **Gateway Token**: Single token for all API calls
+- **Scoping**: Optional per-user tokens (Phase 2)
+- **Control UI**: Separate login (setup password)
+
+---
+
+## 9. Real-Time Updates
+
+### Supabase Realtime (Frontend)
+
+Frontend subscribes to PostgreSQL changes:
+
+```typescript
+// Activity feed subscription
+const subscription = supabase
+  .channel(`activity:${projectId}`)
+  .on('postgres_changes', {
+    event: 'INSERT',
+    schema: 'public',
+    table: 'activity_log',
+    filter: `project_id=eq.${projectId}`
+  }, (payload) => {
+    setActivities((prev) => [payload.new as Activity, ...prev]);
+  })
+  .subscribe();
+```
+
+### WebSocket (Agent Status)
+
+Frontend connects to OpenClaw WebSocket for agent status:
+
+```typescript
+const ws = new WebSocket(`wss://your-railway-url/ws?token=${GATEWAY_TOKEN}`);
+
+ws.onmessage = (event) => {
+  const { type, data } = JSON.parse(event.data);
+  
+  if (type === 'agent_status') {
+    setAgentStatus(data);
+  }
+};
+```
+
+---
+
+## 10. Deployment Architecture
 
 ### Production Stack
 
@@ -665,7 +665,7 @@ User provides value → Henry updates .env → Retries Builder
 
 ---
 
-## 12. Cost Projections
+## 11. Cost Projections
 
 ### Free Tier Capacity
 
@@ -685,7 +685,7 @@ User provides value → Henry updates .env → Retries Builder
 
 ---
 
-## 13. Security Considerations
+## 12. Security Considerations
 
 ### Secrets Management
 
@@ -705,7 +705,7 @@ User provides value → Henry updates .env → Retries Builder
 
 ---
 
-## 14. Monitoring & Observability
+## 13. Monitoring & Observability
 
 ### Built-in Tools
 
@@ -722,7 +722,7 @@ User provides value → Henry updates .env → Retries Builder
 
 ---
 
-## 15. Testing Strategy
+## 14. Testing Strategy
 
 ### Frontend Tests
 
@@ -738,7 +738,7 @@ User provides value → Henry updates .env → Retries Builder
 
 ---
 
-## 16. Migration from v1 (If Needed)
+## 15. Migration from v1 (If Needed)
 
 If you already deployed v1 (Fastify backend):
 
@@ -752,7 +752,7 @@ If you already deployed v1 (Fastify backend):
 
 ---
 
-## 17. Decision Log
+## 16. Decision Log
 
 | Date | Decision | Rationale |
 |------|----------|-----------|
